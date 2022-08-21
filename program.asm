@@ -19,7 +19,7 @@ section .text
         syscall
 	    ret
 
-	global _start
+    global _start
     _start:
 		;; RBX holds the current cell number
 		inc rbx
