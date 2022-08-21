@@ -21,12 +21,12 @@ section .text
 
     global _start
     _start:
-		;; RBX holds the current cell number
+		;; Code gen output starts here
 		inc rbx
 		mov cl, [mem + rbx]
 		add cl, 8
 		mov [mem + rbx], cl
-		L0:
+	L0:
 		dec rbx
 		mov cl, [mem + rbx]
 		add cl, 9
@@ -46,7 +46,7 @@ section .text
 		mov cl, [mem + rbx]
 		add cl, 4
 		mov [mem + rbx], cl
-		L1:
+	L1:
 		dec rbx
 		mov cl, [mem + rbx]
 		add cl, 7
@@ -73,6 +73,9 @@ section .text
 		call write
 		call write
 		mov cl, [mem + rbx]
+		mov [char], cl
+		call write
+		mov cl, [mem + rbx]
 		add cl, 3
 		mov [mem + rbx], cl
 		mov cl, [mem + rbx]
@@ -82,7 +85,7 @@ section .text
 		mov cl, [mem + rbx]
 		add cl, 6
 		mov [mem + rbx], cl
-		L2:
+	L2:
 		dec rbx
 		mov cl, [mem + rbx]
 		add cl, 7
@@ -111,7 +114,7 @@ section .text
 		mov cl, [mem + rbx]
 		add cl, 6
 		mov [mem + rbx], cl
-		L3:
+	L3:
 		dec rbx
 		mov cl, [mem + rbx]
 		add cl, 9
@@ -156,7 +159,7 @@ section .text
 		mov cl, [mem + rbx]
 		add cl, 4
 		mov [mem + rbx], cl
-		L4:
+	L4:
 		dec rbx
 		mov cl, [mem + rbx]
 		add cl, 8

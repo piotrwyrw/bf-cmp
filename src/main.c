@@ -10,9 +10,18 @@
 #define FILENAME "program.asm"
 #define PREAMBLE "preamble.asm"
 
+#define CAN_BE_OPTIMIZED_OP(c) \
+        ((c == '>' || c == '<' || c == '+' || c == '-'))
+
+typedef unsigned char boolean;
+
+#define true 1
+#define false 0
+
 FILE *asm_f = NULL;
 FILE *pre_f = NULL;
 
+// Close all open file descriptors
 void cl_files() {
     if (asm_f)
         fclose(asm_f);
@@ -20,6 +29,7 @@ void cl_files() {
         fclose(pre_f);
 }
 
+// Open required files, copy preamble to target file
 void ini_files() {
     asm_f = fopen(FILENAME, "w");
     if (!asm_f) {
@@ -62,31 +72,36 @@ int main(void) {
     // Initialize the required files
     ini_files();
 
-
+    // Source code. Just a temporary solution. We'll probably read it from a file provided by the user later.
     const unsigned char *prog = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<+"
                                 "+.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-"
                                 "]<+.";
 
-    unsigned int pos = 0;
-    unsigned int loop_no = 0;
-    unsigned int max_loop_no = 0;
-    unsigned int base_loop_no = 0;
-    fprintf(asm_f, "\t\t;; RBX holds the current cell number\n");
+    unsigned int pos = 0;           // Current op position in prog array
+    unsigned int loop_no = 0;       // Current loop number
+    unsigned int max_loop_no = 0;   // Highest loop number yet
+    unsigned int base_loop_no = 0;  // Holds the lowest loop number
+
+    fprintf(asm_f, "\t\t;; Code gen output starts here\n");
 
     // Do the compilation
-    while (1) {
+    while (true) {
+
+        // Current bf operator
         char op = prog[pos];
+
+        // Series length
         unsigned int ct = ct_series(prog, pos);
 
         // Exclude loops from the series optimization (for safety, for now ...)
-        pos += (op != '[' && op != ']') ? ct : 1;
+        pos += (CAN_BE_OPTIMIZED_OP(op)) ? ct : 1;
 
         if (pos > strlen(prog)) {
             break;
         }
 
         switch (op) {
-                break;
+
             case '+':
                 fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
                 if (ct > 1)
@@ -95,6 +110,7 @@ int main(void) {
                     fprintf(asm_f, "\t\tinc cl\n");
                 fprintf(asm_f, "\t\tmov [mem + rbx], cl\n");
                 break;
+
             case '-':
                 fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
                 if (ct > 1)
@@ -103,45 +119,61 @@ int main(void) {
                     fprintf(asm_f, "\t\tdec cl\n");
                 fprintf(asm_f, "\t\tmov [mem + rbx], cl\n");
                 break;
+
             case '>':
                 if (ct > 1)
                     fprintf(asm_f, "\t\tadd rbx, %d\n", ct);
                 else
                     fprintf(asm_f, "\t\tinc rbx\n");
                 break;
+
             case '<':
                 fprintf(asm_f, "\t\tdec rbx\n");
                 break;
+
             case '.':
                 fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
                 fprintf(asm_f, "\t\tmov [char], cl\n");
                 for (unsigned int i = 0; i < ct; i ++)
                     fprintf(asm_f, "\t\tcall write\n");
                 break;
+
             case '[':
-                fprintf(asm_f, "\t\tL%d:\n", loop_no);
+                fprintf(asm_f, "\tL%d:\n", loop_no);
+
                 loop_no ++;
+
+                // Always update the max loop number (if necessary)
                 if (loop_no > max_loop_no) {
                     max_loop_no = loop_no;
                 }
+
                 break;
+
             case ']':
                 fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
                 fprintf(asm_f, "\t\tcmp cl, 0\n");
                 fprintf(asm_f, "\t\tjnz L%d\n", loop_no - 1);
+
                 loop_no --;
+
+                // If we're back at our base 'offset' number, set the offset and loop id offset.
                 if (loop_no == base_loop_no) {
                     loop_no = max_loop_no;
                     base_loop_no = max_loop_no;
                 }
+                break;
+
+            default:
+                break;
         }
     }
 
+    // Make sure we exit the program to avoid segmentation faults (or other memory-related errors)
     fprintf(asm_f, "\t\tjmp exit");
 
     // Close the files
     cl_files();
 
     return 0;
-
 }
