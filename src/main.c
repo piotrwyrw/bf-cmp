@@ -7,13 +7,8 @@
 #include <stddef.h>
 #include <string.h>
 
-#define FILENAME "program.asm"
-#define PREAMBLE "preamble.asm"
-
 #define CAN_BE_OPTIMIZED_OP(c) \
         ((c == '>' || c == '<' || c == '+' || c == '-'))
-
-typedef unsigned char boolean;
 
 #define true 1
 #define false 0
@@ -30,18 +25,18 @@ void cl_files() {
 }
 
 // Open required files, copy preamble to target file
-void ini_files() {
-    asm_f = fopen(FILENAME, "w");
+void ini_files(unsigned char *out, unsigned char *pre) {
+    asm_f = fopen(out, "w");
     if (!asm_f) {
-        printf("Could not open target assembly file: %s\n", FILENAME);
+        printf("Could not open target assembly file: %s\n", out);
         cl_files();
         exit(0);
     }
 
     // Copy the preamble
-    pre_f = fopen(PREAMBLE, "r");
+    pre_f = fopen(pre, "r");
     if (!pre_f) {
-        printf("Could not open preamble file: %s.\n", PREAMBLE);
+        printf("Could not open preamble file: %s.\n", pre);
         cl_files();
         exit(0);
     }
@@ -69,8 +64,12 @@ unsigned int ct_series(const unsigned char *s, unsigned int pos) {
 }
 
 int main(void) {
+
+    unsigned char *out_file = "program.asm";
+    unsigned char *pre_file = "preamble.asm";
+
     // Initialize the required files
-    ini_files();
+    ini_files(out_file, pre_file);
 
     // Source code. Just a temporary solution. We'll probably read it from a file provided by the user later.
     const unsigned char *prog = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<+"
@@ -136,6 +135,10 @@ int main(void) {
                 fprintf(asm_f, "\t\tmov [char], cl\n");
                 for (unsigned int i = 0; i < ct; i ++)
                     fprintf(asm_f, "\t\tcall write\n");
+                break;
+
+            case ',':
+                // To be implemented
                 break;
 
             case '[':
