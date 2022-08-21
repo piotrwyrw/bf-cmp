@@ -1,7 +1,7 @@
 # bf-cmp
 
 ### A very simple and minimalistic Brainfuck compiler built exclusively for Linux in the C programming language.
-The compiler is capable of translating Brainfuck source code into x86-64 Assembly language (NASM-compatible in this instance),
+The compiler is capable of translating Brainfuck source code into optimized x86-64 Assembly language (NASM-compatible in this instance),
 which - after being assembled - will run under the Linux operating system (see below for detailed environment specifications).
 
 ## Warning
