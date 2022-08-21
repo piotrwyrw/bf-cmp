@@ -19,5 +19,5 @@ section .text
         syscall
 	    ret
 
-	global _start
+    global _start
     _start:
