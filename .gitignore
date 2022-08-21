@@ -1,1 +1,7 @@
 .idea
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+program.elf64
+program
