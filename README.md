@@ -40,3 +40,7 @@ qemu-system-i386 -fda binary_file
 # Write the binary to a USB drive (optional)
 dd if=binary_file of=/dev/sdx
 ```
+
+### Screenshot of Qemu running the program
+
+![qemu](https://github.com/piotrwyrw/bf-cmp/blob/master/repo/qemu.png?raw=true)
