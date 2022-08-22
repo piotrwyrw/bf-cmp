@@ -3,7 +3,7 @@
 A minimalistic Brainfuck compiler, capable of converting brainfuck source code into "bootable" i386 assembly.
 
 
-### Building and Running
+### Building and Running under Linux
 ```bash
 # Build the compiler
 cmake .
