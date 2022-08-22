@@ -1,5 +1,5 @@
 //
-// Created by tux on 21.08.22.
+// Created by Piotr Wyrwas on 21.08.22.
 //
 
 #include <stdio.h>
@@ -10,40 +10,93 @@
 #define CAN_BE_OPTIMIZED_OP(c) \
         ((c == '>' || c == '<' || c == '+' || c == '-' || c == '.'))
 
+#define IS_BRAINFUCK_OP(c) \
+        (CAN_BE_OPTIMIZED_OP(c) || c == '[' || c == ']')
+
+#define RESOLVE_PARAMETER(lng, shrt, target, strict)                                    \
+        if (!strcmp(opt, lng) || !strcmp(opt, shrt)) {                          \
+            if (strlen(target) != 0 && strict) {                                          \
+                printf("The option %s (%s) is already set.\n", lng, shrt);      \
+                exit(0);                                                        \
+            }                                                                   \
+            strcpy(target, val);                                                \
+            return true;                                                        \
+        }
+
+#define VALIDATE(str, msg)          \
+        if (strlen(str) == 0) {     \
+            printf(msg);            \
+            exit(0);                \
+        }
+
+#define emit(...) \
+        fprintf(out_f, ##__VA_ARGS__);
+
+typedef unsigned char boolean;
+
 #define true 1
 #define false 0
 
-FILE *asm_f = NULL;
+FILE *src_f = NULL;
+FILE *out_f = NULL;
 FILE *pre_f = NULL;
+
+unsigned char out_file[100] = {0};
+unsigned char pre_file[100] = {0};
+unsigned char src_file[100] = {0};
+unsigned char prj_name[100] = "Empty project";
+unsigned char prog[200] = {0};
 
 // Close all open file descriptors
 void cl_files() {
-    if (asm_f)
-        fclose(asm_f);
+    if (out_f)
+        fclose(out_f);
     if (pre_f)
         fclose(pre_f);
+    if (src_f)
+        fclose(src_f);
 }
 
-// Open required files, copy preamble to target file
-void ini_files(unsigned char *out, unsigned char *pre) {
-    asm_f = fopen(out, "w");
-    if (!asm_f) {
-        printf("Could not open target assembly file: %s\n", out);
-        cl_files();
-        exit(0);
-    }
-
-    // Copy the preamble
-    pre_f = fopen(pre, "r");
-    if (!pre_f) {
-        printf("Could not open preamble file: %s.\n", pre);
+// Open required files, copy preamble to target file, load source code
+void ini_files() {
+    out_f = fopen(out_file, "w");
+    if (!out_f) {
+        printf("Could not open output file: %s\n", out_file);
         cl_files();
         exit(0);
     }
 
     int c = 0;
+    unsigned int len = 0;
+
+    // Load the brainfuck source code
+    src_f = fopen(src_file, "r");
+    if (!src_f) {
+        printf("Could not open source file: %s\n", src_file);
+        cl_files();
+        exit(0);
+    }
+
+    while ((c = getc(src_f)) != EOF) {
+        if (!IS_BRAINFUCK_OP(c))
+            continue;
+        prog[len] = c;
+        len ++;
+    }
+
+    fclose(src_f);
+    src_f = NULL;
+
+    // Copy the preamble
+    pre_f = fopen(pre_file, "r");
+    if (!pre_f) {
+        printf("Could not open preamble file: %s.\n", pre_file);
+        cl_files();
+        exit(0);
+    }
+
     while ((c = getc(pre_f)) != EOF) {
-        fwrite(&c, 1, 1, asm_f);
+        fwrite(&c, 1, 1, out_f);
     }
 
     fclose(pre_f);
@@ -63,31 +116,75 @@ unsigned int ct_series(const unsigned char *s, unsigned int pos) {
     return rep;
 }
 
-int main(void) {
+void usage(char *a) {
+    printf(
+            "Usage:\n"
+            "  %s --source|-s source_file --output|-o output_file --preamble|-p preamble_file [--name|-n project_name]\n", a);
+}
 
-    unsigned char *out_file = "program.asm";
-    unsigned char *pre_file = "boot.asm";
-    unsigned char *exec_name = "Bare metal test 002";
+boolean resolv(char *opt, char *val) {
+    RESOLVE_PARAMETER("--source", "-s", src_file, true);
+    RESOLVE_PARAMETER("--output", "-o", out_file, true);
+    RESOLVE_PARAMETER("--preamble", "-p", pre_file, true);
+    RESOLVE_PARAMETER("--name", "-n", prj_name, false);
+    return false;
+}
+
+void validate_params() {
+    VALIDATE(src_file, "Source file has to be set.\n");
+    VALIDATE(out_file, "Output file has to be set.\n");
+    VALIDATE(pre_file, "Preamble fie has to be set.\n");
+}
+
+int main(int argc, char **argv) {
+
+    int real_argc = argc - 1;
+
+    if (real_argc <= 0) {
+        usage(argv[0]);
+        return -1;
+    }
+
+    // Parse command line arguments
+    char option[100]    = {0};
+    char value[200]     = {0};
+
+    for (int i = 1; i < argc; i ++) {
+        strcpy(option, argv[i]);
+        if (i + 1 >= argc) {
+            printf("Expected value for option: %s", option);
+            return 0;
+        }
+        i ++;
+        strcpy(value, argv[i]);
+        if (!resolv(option, value)) {
+            printf("Could not resolve option: %s", option);
+            return 0;
+        }
+    }
+
+    validate_params();
+
+    printf("Getting things ready ..\n");
 
     // Initialize the required files
-    ini_files(out_file, pre_file);
-
-    // Source code. Just a temporary solution. We'll probably read it from a file provided by the user later.
-    const unsigned char *prog = "-[------->+<]>.>--[----->+<]>.[--->+<]>--.--[->++++<]>+.----------.++++++.-[---->+<]>+++.---[->++++<]>-.++++[->+++<]>..--[--->+<]>-.---[->++++<]>.------------.+.++++++++++.+[---->+<]>+++.+[----->+<]>.--------.[--->+<]>----..++[->+++<]>++.++++++.--.--[--->+<]>-.--[->++++<]>-.+[->+++<]>+.+++++++++++.------------.--[--->+<]>--.+[----->+<]>+.+.[--->+<]>-----.+[->+++<]>+.+++++.++++++++++.+.-----.+++.++.-----------.++++++.-.[----->++<]>.------------.[->+++<]>+.+++++++++++..[++>---<]>--.+[->+++<]>.++++++++++++.--.+++.-.-.---------.+++++++++.++++++.-.+[---->+<]>+++.---[->++++<]>-.-----------.+++++++.++++++.---------.--------.-[--->+<]>-.--[->++++<]>-.--------.+++.-------.-[++>---<]>+.++[->+++<]>.+++.+++++.---------.[->+++<]>-.";
+    ini_files();
 
     unsigned int pos = 0;           // Current op position in prog array
     unsigned int loop_no = 0;       // Current loop number
     unsigned int max_loop_no = 0;   // Highest loop number yet
     unsigned int base_loop_no = 0;  // Holds the lowest loop number
 
-    fprintf(asm_f, "\tjmp Execute\n\n");
-    fprintf(asm_f, "\tPROGRAM: db \"%s\", 10, 0\n\n", exec_name);
-    fprintf(asm_f, "Execute:\n");
-    fprintf(asm_f, "\tmov si, PROGRAM\n");
-    fprintf(asm_f, "\tcall Print\n\n");
-    fprintf(asm_f, "\t;; Project name: %s\n", exec_name);
-    fprintf(asm_f, "\t;; Source code:\n\t;; %s\n", prog);
-    fprintf(asm_f, "\t;; Code gen output starts here\n\n");
+    emit( "\tjmp Execute\n\n");
+    emit( "\tPROGRAM: db \"%s\", 10, 0\n\n", prj_name);
+    emit( "Execute:\n");
+    emit( "\tmov si, PROGRAM\n");
+    emit( "\tcall Print\n\n");
+    emit( "\t;; Project name: %s\n", prj_name);
+    emit( "\t;; Source code:\n\t;; %s\n", prog);
+    emit( "\t;; Code gen output starts here\n\n");
+
+    printf("Compiling ..\n");
 
     // Do the compilation
     while (true) {
@@ -108,41 +205,44 @@ int main(void) {
         switch (op) {
 
             case '+':
-                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
-                if (ct > 1)
-                    fprintf(asm_f, "\tadd cl, %d\n", ct);
-                else
-                    fprintf(asm_f, "\tinc cl\n");
-                fprintf(asm_f, "\tmov [CELLS + bx], cl\n");
+                emit( "\tmov cl, [CELLS + bx]\n");
+                if (ct > 1) {
+                    emit("\tadd cl, %d\n", ct);
+                } else {
+                    emit("\tinc cl\n");
+                }
+                emit( "\tmov [CELLS + bx], cl\n");
                 break;
 
             case '-':
-                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
-                if (ct > 1)
-                    fprintf(asm_f, "\tsub cl, %d\n", ct);
-                else
-                    fprintf(asm_f, "\tdec cl\n");
-                fprintf(asm_f, "\tmov [CELLS + bx], cl\n");
+                emit( "\tmov cl, [CELLS + bx]\n");
+                if (ct > 1) {
+                    emit("\tsub cl, %d\n", ct);
+                } else {
+                    emit("\tdec cl\n");
+                }
+                emit( "\tmov [CELLS + bx], cl\n");
                 break;
 
             case '>':
-                if (ct > 1)
-                    fprintf(asm_f, "\tadd bx, %d\n", ct);
-                else
-                    fprintf(asm_f, "\tinc bx\n");
+                if (ct > 1) {
+                    emit("\tadd bx, %d\n", ct);
+                } else {
+                    emit("\tinc bx\n");
+                }
                 break;
 
             case '<':
-                fprintf(asm_f, "\tdec bx\n");
+                emit( "\tdec bx\n");
                 break;
 
             case '.':
-                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
-                fprintf(asm_f, "\tmov [CHAR], cl\n");
-                fprintf(asm_f, "\tpusha\n");
+                emit( "\tmov cl, [CELLS + bx]\n");
+                emit( "\tmov [CHAR], cl\n");
+                emit( "\tpusha\n");
                 for (unsigned int i = 0; i < ct; i ++)
-                    fprintf(asm_f, "\tcall Output\n");
-                fprintf(asm_f, "\tpopa\n");
+                    emit( "\tcall Output\n");
+                emit( "\tpopa\n");
                 break;
 
             case ',':
@@ -150,7 +250,7 @@ int main(void) {
                 break;
 
             case '[':
-                fprintf(asm_f, "L%d:\n", loop_no);
+                emit( "L%d:\n", loop_no);
 
                 loop_no ++;
 
@@ -162,9 +262,9 @@ int main(void) {
                 break;
 
             case ']':
-                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
-                fprintf(asm_f, "\tcmp cl, 0\n");
-                fprintf(asm_f, "\tjnz L%d\n", loop_no - 1);
+                emit( "\tmov cl, [CELLS + bx]\n");
+                emit( "\tcmp cl, 0\n");
+                emit( "\tjnz L%d\n", loop_no - 1);
 
                 loop_no --;
 
@@ -181,11 +281,16 @@ int main(void) {
     }
 
     // Enter an infinite loop
-    fprintf(asm_f, "\n\t;; End of generated assembly\n");
-    fprintf(asm_f, "\tjmp $");
+    emit( "\n\t;; End of generated assembly\n");
+    emit( "\tjmp $");
+
+    printf("Finalizing ..\n");
 
     // Close the files
     cl_files();
+
+    printf("~~ Compilation of \"%s\" successful. Emitted assembly into \"%s\". Used preamble: \"%s\" ~~\n", src_file, out_file, pre_file);
+    printf("Done.\n");
 
     return 0;
 }
