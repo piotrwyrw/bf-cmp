@@ -5,13 +5,23 @@ if [ ! -f /bin/nasm ]; then
 	exit
 fi
 
-if [ ! -f /bin/ld ]; then
-	echo "The GNU Linker (ld) has to be installed for this to work."
+if [ ! -f /bin/qemu-system-i386 ]; then
+	echo "qemu-system-i386 has to be installed for this to work."
 	exit
 fi
 
+if [ -d build ]; then
+	rm -rf build
+fi
+
+mkdir build
+
 # Assemble
-nasm -f elf64 program.asm -o program.elf64
+nasm -f bin program.asm -o build/program.bin
+
+if [ ! -f build/program.bin ]; then
+	echo "Binary file not found. Assembly process has most likely failed."
+fi
 
 # Link with the standsrd libraries
-ld program.elf64 -o program
+qemu-system-i386 -fda build/program.bin

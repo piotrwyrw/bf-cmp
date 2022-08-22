@@ -1,13 +1,21 @@
-# bf-cmp
+## bf-cmp
 
-### A very simple and minimalistic Brainfuck compiler built for Linux in the C programming language.
-The compiler is capable of translating Brainfuck source code into optimized x86-64 Assembly language (NASM-compatible in this instance),
-which - after being assembled - will run under the Linux operating system (see below for detailed environment specifications).
+A minimalistic Brainfuck compiler, capable of converting brainfuck source code into "bootable" i386 assembly.
 
-## Warning
-This project is currently in its prototyping phase - there's a lot more to do and improve (eg. user input). Await lots of upcoming updates!
 
-## Testing Conditions
-* _Distro_ **Ubuntu 22.04**
-* _Kernel_ **5.15.0-46**
-* 64-bit Syscalls
+### Building and Running
+```bash
+# Build the compiler
+cmake .
+make
+
+# Run the compiler and assemble the resulting assembly output
+./compiler
+nasm -f bin program.asm -o program.bin
+
+# Run the binary under qemu
+qemu-system-i386 -fda program.bin
+
+# OR write the binary to a USB drive
+dd if=program.bin of=/dev/sdx
+```

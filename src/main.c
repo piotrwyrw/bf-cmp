@@ -8,7 +8,7 @@
 #include <string.h>
 
 #define CAN_BE_OPTIMIZED_OP(c) \
-        ((c == '>' || c == '<' || c == '+' || c == '-'))
+        ((c == '>' || c == '<' || c == '+' || c == '-' || c == '.'))
 
 #define true 1
 #define false 0
@@ -66,22 +66,28 @@ unsigned int ct_series(const unsigned char *s, unsigned int pos) {
 int main(void) {
 
     unsigned char *out_file = "program.asm";
-    unsigned char *pre_file = "preamble.asm";
+    unsigned char *pre_file = "boot.asm";
+    unsigned char *exec_name = "Bare metal test 002";
 
     // Initialize the required files
     ini_files(out_file, pre_file);
 
     // Source code. Just a temporary solution. We'll probably read it from a file provided by the user later.
-    const unsigned char *prog = ">++++++++[<+++++++++>-]<.>++++[<+++++++>-]<+.+++++++..+++.>>++++++[<+++++++>-]<+"
-                                "+.------------.>++++++[<+++++++++>-]<+.<.+++.------.--------.>>>++++[<++++++++>-"
-                                "]<+.";
+    const unsigned char *prog = "-[------->+<]>.>--[----->+<]>.[--->+<]>--.--[->++++<]>+.----------.++++++.-[---->+<]>+++.---[->++++<]>-.++++[->+++<]>..--[--->+<]>-.---[->++++<]>.------------.+.++++++++++.+[---->+<]>+++.+[----->+<]>.--------.[--->+<]>----..++[->+++<]>++.++++++.--.--[--->+<]>-.--[->++++<]>-.+[->+++<]>+.+++++++++++.------------.--[--->+<]>--.+[----->+<]>+.+.[--->+<]>-----.+[->+++<]>+.+++++.++++++++++.+.-----.+++.++.-----------.++++++.-.[----->++<]>.------------.[->+++<]>+.+++++++++++..[++>---<]>--.+[->+++<]>.++++++++++++.--.+++.-.-.---------.+++++++++.++++++.-.+[---->+<]>+++.---[->++++<]>-.-----------.+++++++.++++++.---------.--------.-[--->+<]>-.--[->++++<]>-.--------.+++.-------.-[++>---<]>+.++[->+++<]>.+++.+++++.---------.[->+++<]>-.";
 
     unsigned int pos = 0;           // Current op position in prog array
     unsigned int loop_no = 0;       // Current loop number
     unsigned int max_loop_no = 0;   // Highest loop number yet
     unsigned int base_loop_no = 0;  // Holds the lowest loop number
 
-    fprintf(asm_f, "\t\t;; Code gen output starts here\n");
+    fprintf(asm_f, "\tjmp Execute\n\n");
+    fprintf(asm_f, "\tPROGRAM: db \"%s\", 10, 0\n\n", exec_name);
+    fprintf(asm_f, "Execute:\n");
+    fprintf(asm_f, "\tmov si, PROGRAM\n");
+    fprintf(asm_f, "\tcall Print\n\n");
+    fprintf(asm_f, "\t;; Project name: %s\n", exec_name);
+    fprintf(asm_f, "\t;; Source code:\n\t;; %s\n", prog);
+    fprintf(asm_f, "\t;; Code gen output starts here\n\n");
 
     // Do the compilation
     while (true) {
@@ -102,39 +108,41 @@ int main(void) {
         switch (op) {
 
             case '+':
-                fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
+                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
                 if (ct > 1)
-                    fprintf(asm_f, "\t\tadd cl, %d\n", ct);
+                    fprintf(asm_f, "\tadd cl, %d\n", ct);
                 else
-                    fprintf(asm_f, "\t\tinc cl\n");
-                fprintf(asm_f, "\t\tmov [mem + rbx], cl\n");
+                    fprintf(asm_f, "\tinc cl\n");
+                fprintf(asm_f, "\tmov [CELLS + bx], cl\n");
                 break;
 
             case '-':
-                fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
+                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
                 if (ct > 1)
-                    fprintf(asm_f, "\t\tsub cl, %d\n", ct);
+                    fprintf(asm_f, "\tsub cl, %d\n", ct);
                 else
-                    fprintf(asm_f, "\t\tdec cl\n");
-                fprintf(asm_f, "\t\tmov [mem + rbx], cl\n");
+                    fprintf(asm_f, "\tdec cl\n");
+                fprintf(asm_f, "\tmov [CELLS + bx], cl\n");
                 break;
 
             case '>':
                 if (ct > 1)
-                    fprintf(asm_f, "\t\tadd rbx, %d\n", ct);
+                    fprintf(asm_f, "\tadd bx, %d\n", ct);
                 else
-                    fprintf(asm_f, "\t\tinc rbx\n");
+                    fprintf(asm_f, "\tinc bx\n");
                 break;
 
             case '<':
-                fprintf(asm_f, "\t\tdec rbx\n");
+                fprintf(asm_f, "\tdec bx\n");
                 break;
 
             case '.':
-                fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
-                fprintf(asm_f, "\t\tmov [char], cl\n");
+                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
+                fprintf(asm_f, "\tmov [CHAR], cl\n");
+                fprintf(asm_f, "\tpusha\n");
                 for (unsigned int i = 0; i < ct; i ++)
-                    fprintf(asm_f, "\t\tcall write\n");
+                    fprintf(asm_f, "\tcall Output\n");
+                fprintf(asm_f, "\tpopa\n");
                 break;
 
             case ',':
@@ -142,7 +150,7 @@ int main(void) {
                 break;
 
             case '[':
-                fprintf(asm_f, "\tL%d:\n", loop_no);
+                fprintf(asm_f, "L%d:\n", loop_no);
 
                 loop_no ++;
 
@@ -154,9 +162,9 @@ int main(void) {
                 break;
 
             case ']':
-                fprintf(asm_f, "\t\tmov cl, [mem + rbx]\n");
-                fprintf(asm_f, "\t\tcmp cl, 0\n");
-                fprintf(asm_f, "\t\tjnz L%d\n", loop_no - 1);
+                fprintf(asm_f, "\tmov cl, [CELLS + bx]\n");
+                fprintf(asm_f, "\tcmp cl, 0\n");
+                fprintf(asm_f, "\tjnz L%d\n", loop_no - 1);
 
                 loop_no --;
 
@@ -172,8 +180,9 @@ int main(void) {
         }
     }
 
-    // Make sure we exit the program to avoid segmentation faults (or other memory-related errors)
-    fprintf(asm_f, "\t\tjmp exit");
+    // Enter an infinite loop
+    fprintf(asm_f, "\n\t;; End of generated assembly\n");
+    fprintf(asm_f, "\tjmp $");
 
     // Close the files
     cl_files();
