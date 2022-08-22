@@ -165,7 +165,20 @@ int main(int argc, char **argv) {
 
     validate_params();
 
-    printf("Getting things ready ..\n");
+    printf(" __         ______                                           \n"
+           "|  \\       /      \\                                          \n"
+           "| $$____  |  $$$$$$\\         _______  ______ ____    ______  \n"
+           "| $$    \\ | $$_  \\$$______  /       \\|      \\    \\  /      \\ \n"
+           "| $$$$$$$\\| $$ \\   |      \\|  $$$$$$$| $$$$$$\\$$$$\\|  $$$$$$\\\n"
+           "| $$  | $$| $$$$    \\$$$$$$| $$      | $$ | $$ | $$| $$  | $$\n"
+           "| $$__/ $$| $$             | $$_____ | $$ | $$ | $$| $$__/ $$\n"
+           "| $$    $$| $$      bare-   \\$$     \\| $$ | $$ | $$| $$    $$\n"
+           " \\$$$$$$$  \\$$    metal      \\$$$$$$$ \\$$  \\$$  \\$$| $$$$$$$ \n"
+           "                                                   | $$      \n"
+           "                                                   | $$      \n"
+           "                                                    \\$$      \n");
+
+    printf("Preparing for compilation ..\n");
 
     // Initialize the required files
     ini_files();
@@ -184,7 +197,7 @@ int main(int argc, char **argv) {
     emit( "\t;; Source code:\n\t;; %s\n", prog);
     emit( "\t;; Code gen output starts here\n\n");
 
-    printf("Compiling ..\n");
+    printf("Compiling instructions ..\n");
 
     // Do the compilation
     while (true) {
@@ -284,13 +297,10 @@ int main(int argc, char **argv) {
     emit( "\n\t;; End of generated assembly\n");
     emit( "\tjmp $");
 
-    printf("Finalizing ..\n");
-
     // Close the files
     cl_files();
 
-    printf("~~ Compilation of \"%s\" successful. Emitted assembly into \"%s\". Used preamble: \"%s\" ~~\n", src_file, out_file, pre_file);
-    printf("Done.\n");
+    printf("Compilation of \"%s\" (%s) successful, emitted assembly into \"%s\", used preamble: \"%s\"\n", src_file, prj_name, out_file, pre_file);
 
     return 0;
 }
