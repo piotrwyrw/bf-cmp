@@ -11,7 +11,7 @@
         ((c == '>' || c == '<' || c == '+' || c == '-' || c == '.'))
 
 #define IS_BRAINFUCK_OP(c) \
-        (CAN_BE_OPTIMIZED_OP(c) || c == '[' || c == ']')
+        (CAN_BE_OPTIMIZED_OP(c) || c == '[' || c == ']' || c == ',')
 
 #define RESOLVE_PARAMETER(lng, shrt, target, strict)                                    \
         if (!strcmp(opt, lng) || !strcmp(opt, shrt)) {                          \
@@ -259,7 +259,10 @@ int main(int argc, char **argv) {
                 break;
 
             case ',':
-                // To be implemented
+                emit("\tcall Input\n");
+                emit("\tcall Parse\n");
+                emit("\tmov al, [INPUT_VAL]\n");
+                emit("\tmov [CELLS + bx], al\n");
                 break;
 
             case '[':
