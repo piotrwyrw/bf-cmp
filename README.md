@@ -13,7 +13,7 @@
                                                     \$$      
 ```
 
-A minimalistic Brainfuck compiler, capable of converting brainfuck source code into "bootable" i386 assembly.
+A minimalistic Brainfuck compiler, capable of converting brainfuck source code into "bootable" x86 assembly.
 
 ### CLI Usage
 ```bash
