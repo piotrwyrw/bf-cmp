@@ -141,8 +141,26 @@ INPUT_BUFFER:
 INPUT_VAL:
     db 0
 
+BufferClear:
+    push bx
+    mov bx, 100
+    .loop:
+
+        mov byte [INPUT_BUFFER + bx], 0
+        dec bx
+
+        cmp bx, 0
+        jg .loop
+        jmp .exit
+
+    .exit:
+        pop bx
+        ret
+
 Input:
     push bx
+
+    call BufferClear
 
     mov si, PROMPT_STR
     call Print
@@ -232,13 +250,13 @@ Kernel:
     xor bx, bx
 	jmp Execute
 
-	PROGRAM: db "Input test", 10, 0
+	PROGRAM: db "Example 03", 10, 0
 
 Execute:
 	mov si, PROGRAM
 	call Print
 
-	;; Project name: Input test
+	;; Project name: Example 03
 	;; Source code:
 	;; [,.]
 	;; Code gen output starts here
